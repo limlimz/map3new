@@ -39,17 +39,10 @@ class Database {
   }
 
 
-  createuserInfo(String FirstName, String LasttName,String email) async {
-    await FirebaseFirestore.instance.collection("user")
-        .doc(FirebaseAuth.instance.currentUser.uid)
-        .set({"First Name": FirstName, "Last Name": LasttName, "Email":email});
-  }
 
 
 
-  getUsersCount()  {
-    return  FirebaseFirestore.instance.collection("user").snapshots().length;
-  }
+
 
 
 

@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "803620876902",
+    "project_id": "caffinate-4ca44",
+    "storage_bucket": "caffinate-4ca44.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:803620876902:android:8c16c6a352b86c39eaf3a7",
+        "android_client_info": {
+          "package_name": "com.maps"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "803620876902-10v6picolpbjrl8vsim27e54ni0n3350.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.maps",
+            "certificate_hash": "d653affa0eb95612462ca9d7cc9ee1393d908bac"
+          }
+        },
+        {
+          "client_id": "803620876902-alae6mltbj981p09grl85t9988j5118q.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD4eLrhcWTtk_FzPOdnNhUBCu8g_0QVxlE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "803620876902-alae6mltbj981p09grl85t9988j5118q.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

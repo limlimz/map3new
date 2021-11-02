@@ -104,20 +104,20 @@ class _LoginScreenState extends State<LoginScreen> {
         SizedBox(
           height: 10,
         ),
-        // IntlPhoneField(
-        //   controller: phoneController,
-        //   decoration: InputDecoration(
-        //     //decoration for Input Field
-        //     hintText: '000 0000',
-        //   ),
-        //   initialCountryCode: 'KE', //default contry code, NP for Nepal
-        //   onChanged: (phone) {
-        //     //when phone number country code is changed
-        //     print(phone.completeNumber); //get complete number
-        //     print(phone.countryCode); // get country code only
-        //     print(phone.number); // only phone number
-        //   },
-        // ),
+         // IntlPhoneField(
+         //   controller: phoneController,
+         // decoration: InputDecoration(
+         //   //decoration for Input Field
+         //    hintText: '000 0000',
+         //  ),
+         //  initialCountryCode: 'KE', //default contry code, NP for Nepal
+         //  onChanged: (phone) {
+         //     //when phone number country code is changed
+         //     print(phone.completeNumber); //get complete number
+         //    print(phone.countryCode); // get country code only
+         //    print(phone.number); // only phone number
+         //  },
+         // ),
 
         Text(
             "Map3n will send you a text with verification code. \nMessage and data rates may apply"),
@@ -219,14 +219,14 @@ class _LoginScreenState extends State<LoginScreen> {
           height: 16,
         ),
         InkWell(
-          onTap: () async {
+          onTap: ()  {
 
 
             PhoneAuthCredential phoneAuthCredential =
             PhoneAuthProvider.credential(verificationId: verificationId, smsCode: otpController.text);
             signInWithPhoneAuthCredential(phoneAuthCredential);
             print("Your jdsjkdfjdjkdsjdskjdsjkjdsdskjfdsjfdjfdsjfhdsjfjdjfdkjfjdsjdsjjdsfjdfdsjdjdjsjjdjduid is ${FirebaseAuth.instance.currentUser}");
-            await Auth();
+             Auth();
           },
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,

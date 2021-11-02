@@ -59,6 +59,6 @@ class _InitializerWidgetState extends State<InitializerWidget> {
     )
         : _user == null ? LoginScreen() :
 
-    Map();
+    Mapservice();
   }
 }

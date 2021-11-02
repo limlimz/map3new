@@ -11,10 +11,11 @@ class Auth extends StatefulWidget {
 }
 
 class _AuthState extends State<Auth> {
-  var doc;
-
+  bool isLoading = true;
   User _user = FirebaseAuth.instance.currentUser;
   FirebaseFirestore firestore = FirebaseFirestore.instance;
+  var doc;
+
 
   @override
   void initState() {
@@ -23,39 +24,62 @@ class _AuthState extends State<Auth> {
     User _user = FirebaseAuth.instance.currentUser;
     _user.uid;
     data();
-    dats();
-    doc =data();
-    doc;
+    setState(() {
+      doc;
+    });
   }
+
+
+
 
   Future data() async {
     return await FirebaseFirestore.instance
         .collection('user')
-        .doc(FirebaseAuth.instance.currentUser.uid.toString())
+        .doc(FirebaseAuth.instance.currentUser.uid)
         .get()
         .then((DocumentSnapshot documentSnapshot) {
       if (documentSnapshot.exists) {
         print("${documentSnapshot.data()}");
-        return documentSnapshot.data();
+       doc = documentSnapshot.data();
+       setState(() {
+         doc;
+       });
       }
     });
   }
 
-  void dats() async {
-    doc = await data();
-    print("ggggghggfgfddrrddcfccgcgfcfdfdrdsrddfgchgvhgvgyftxdrxdxfcgvvvhgvgftftrfddrxdx $doc");
-  }
+
+
+  //  dats() async {
+  //
+  //    var doc = await data();
+  //   print("ggggghggfgfddrrddcfccgcgfcfdfdrdsrddfgchgvhgvgyftxdrxdxfcgvvvhgvgftftrfddrxdx $doc");
+  //   return doc;
+  // }
 
   @override
   Widget build(BuildContext context) {
-    if (doc == null) {
-      print ("hgyrddrtddrtrtddrrttr$doc");
-      return Detail();
-    }
+
+    // return isLoading ? Scaffold(
+    //   body: Center(
+    //     child: CircularProgressIndicator(),
+    //   ),
+    // ): doc == null ? Detail() :
+    //
+    //     Map();
+  setState(() {
+    doc;
+  });
+    print(doc);
+
     if (doc != null)
     {
-      print (doc);
-      return Map();
+      print ( "limmmmmffdf $doc");
+      return Mapservice();
     }
+else
+  {
+    return Detail();
+  }
   }
 }

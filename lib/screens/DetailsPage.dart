@@ -223,7 +223,7 @@ class _SignUpState extends State<Detail> {
       _key.currentState.save();
       await User();
       Navigator.push(
-          context, MaterialPageRoute(builder: (context) => Map()));
+          context, MaterialPageRoute(builder: (context) => Mapservice()));
     } else {
       setState(() {
         _validate = AutovalidateMode.onUserInteraction;
@@ -233,9 +233,10 @@ class _SignUpState extends State<Detail> {
 
   Future<void> User() async {
     await FirebaseFirestore.instance.collection('user').doc(FirebaseAuth.instance.currentUser.uid).set({
-      'First Name': _name.text,
-      'Last Name': _namelast.text,
+      'FirstName': _name.text,
+      'LastName': _namelast.text,
       'Email': _emailAddress.text,
+      "services" : []
     });
   }
 

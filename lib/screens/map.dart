@@ -1,8 +1,11 @@
 import 'dart:async';
-
+import 'dart:core';
+import 'dart:core';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:phone_verification/model/user.dart';
 import 'package:phone_verification/screens/profile.dart';
@@ -10,76 +13,151 @@ import 'package:phone_verification/service/service.dart';
 import 'login_screen.dart';
 import 'package:location/location.dart' as loc;
 
-class Map extends StatefulWidget {
+class Mapservice extends StatefulWidget {
   @override
-  _MapState createState() => _MapState();
+  _MapserviceState createState() => _MapserviceState();
 }
 
-class _MapState extends State<Map> {
+class _MapserviceState extends State<Mapservice> {
+  GoogleMapController _controller;
+  var Snapshot;
   final loc.Location location = loc.Location();
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   final TextEditingController textController = new TextEditingController();
   loc.LocationData currentPosition;
   UserModel userModel;
+  Position position;
+  Set<Marker> markerList;
+
+  Map<MarkerId, Marker> markers = <MarkerId, Marker>{};
 
 
-  getuserdata()async{
-
+  getuserdata() async {
     userModel = await Database().getuserprofile();
-
+    setState(() {});
   }
+
+  Future<void> getCurrentLocation() async {
+    Position res = await Geolocator().getCurrentPosition();
+    setState(() {
+      position = res;
+    });
+  }
+
+
+
+
+
+  Future getpost() async {
+    var firestore = FirebaseFirestore.instance;
+
+    QuerySnapshot qn = await FirebaseFirestore.instance
+        .collection("providers")
+        .doc()
+        .get()
+        .then((value) {
+      if (value.exists) {
+        print("data here Bwana ${value.data()}");
+      }
+    });
+    return qn.docs;
+  }
+
+
+
+
+  void updatePosition() async {
+//get user current location
+    Position position = await Geolocator().getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+    if (position == null) {
+      return;
+    } else{
+      FirebaseFirestore.instance.collection("location").doc(FirebaseAuth.instance.currentUser.uid).set({
+        'location':GeoPoint(
+
+          position.latitude,position.longitude
+        )
+
+
+      });
+
+    }
+//write place to initialise marker list as we have at least one marker now but  more markers will be needed in services app
+    this.markerList = Set<Marker>();
+//finally update state
+    setState(() {
+      this.position = position;this.markerList.add(Marker(position: LatLng(position.latitude, position.longitude), markerId: MarkerId("1")));
+    });
+  }
+
+  Widget getgeo(){
+    return StreamBuilder(
+      stream:FirebaseFirestore.instance.collection("location").snapshots() ,
+        builder: (context, snapshot){
+        if (!snapshot.hasData) return Text(" markers loading");
+        for (int i = 0; i < snapshot.data.length; ++i) {
+
+        }
+        }
+    );
+  }
+
+
+
   void initState() {
-
     getuserdata();
-
     super.initState();
-    // FirebaseAuth.instance.signOut();
+    getCurrentLocation();
+    updatePosition();
+    getpost();
+    populateClients();
+// FirebaseAuth.instance.signOut();
   }
-  //2
-  static List<String> _listOfservices = <String>[
-    "Plumbing",
-    "Baby sitting",
-    "Electrician",
-    "Teacher",
-    "Software engineer",
-    "john",
-    "jane",
-    "jay",
-    "johnte",
-    "jayden",
-    "john",
-    "jane",
-    "jay",
-    "johnte",
-    "jayden",
-    "john",
-    "jane",
-    "jay",
-    "johnte",
-    "jayden",
-  ];
-  static List<String> _listOfwatu = <String>[
-    "john",
-    "deno",
-    "jane",
-    "pato",
-    "jay",
-    "johnte",
-    "fred",
-    "jayden",
-  ];
-  var _templistOfservices;
-  var _templistOfwatu;
+
   final _auth = FirebaseAuth.instance;
-  final Set<Marker> _markers = Set();
+
   final double _zoom = 10;
-  CameraPosition _initialPosition =
-      CameraPosition(target: LatLng(26.8206, 30.8025));
+  var serviceid;
+
   MapType _defaultMapType = MapType.normal;
-  Completer<GoogleMapController> _controller = Completer();
+
+  BitmapDescriptor pinLocationIcon;
+
+  initMarker(request, requestId) {
+    var p = request['location'];
+    var markerIdVal = requestId;
+    final MarkerId markerId = MarkerId(markerIdVal);
+    final Marker marker = Marker(
+        markerId: markerId,
+        position: LatLng(p['latitude'], p['longitude  ']),
+        infoWindow: InfoWindow(
+          title: 'name',
+        ));
+    setState(() {
+      markers[markerId] = marker;
+
+    });
+  }
+
+  Future populateClients() async{
+   return FirebaseFirestore.instance.collection("location").get().then((docs) {
+      if (docs.docs.isNotEmpty) {
+        for (int i = 0; i < docs.docs.length; ++i) {
+          initMarker(docs.docs[i].data(), docs.docs[i].id);
+
+        }
+      }
+      return docs;
+    });
+  }
+
+
+  // Set<Marker> _markers = {};
 
   void _onMapCreated(GoogleMapController controller) {
-    _controller.complete(controller);
+    setState(() {
+      _controller = controller;
+    });
   }
 
   void _changeMapType() {
@@ -94,7 +172,7 @@ class _MapState extends State<Map> {
   bool _showservice = true;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext get) {
     var _image;
 
     return Scaffold(
@@ -152,8 +230,8 @@ class _MapState extends State<Map> {
               children: <Widget>[
                 UserAccountsDrawerHeader(
                   decoration: BoxDecoration(color: Colors.black87),
-                  accountName: Text("Fred"),
-                  accountEmail: Text("githumbi8fredgmail.com"),
+                  accountName: Text(" ${userModel.FirstName}"),
+                  accountEmail: Text("${userModel.Email}"),
                   currentAccountPicture: CircleAvatar(
                     backgroundColor: Colors.white,
                     child: Stack(
@@ -182,17 +260,19 @@ class _MapState extends State<Map> {
                           left: 80,
                           right: 0,
                           child: FloatingActionButton(
-                              backgroundColor: Colors.black12,
-                              child: Icon(Icons.camera_alt),
-                              mini: true,
-                              onPressed: _onCameraClick),
+                            backgroundColor: Colors.black12,
+                            child: Icon(Icons.camera_alt),
+                            mini: true,
+                            onPressed: () {},
+                          ),
                         )
                       ],
                     ),
                   ),
                 ),
                 ListTile(
-                  title: Center(child: new Text("Hello userModel.FirstName")),
+                  title:
+                      Center(child: new Text("Hello ${userModel.FirstName}")),
                 ),
                 Divider(),
                 ListTile(
@@ -202,6 +282,7 @@ class _MapState extends State<Map> {
                   title: new Text("Conversations"),
                   trailing: new Icon(Icons.arrow_forward_ios),
                 ),
+                Divider(),
                 ListTile(
                   onTap: () {
                     Navigator.of(context).pop();
@@ -209,6 +290,7 @@ class _MapState extends State<Map> {
                   title: new Text("Receipts"),
                   trailing: new Icon(Icons.arrow_forward_ios),
                 ),
+                Divider(),
                 ListTile(
                   onTap: () {
                     Navigator.of(context).pop();
@@ -216,6 +298,7 @@ class _MapState extends State<Map> {
                   title: new Text("Request Board"),
                   trailing: new Icon(Icons.arrow_forward_ios),
                 ),
+                Divider(),
                 ListTile(
                   onTap: () {
                     Navigator.of(context).pop();
@@ -223,6 +306,7 @@ class _MapState extends State<Map> {
                   title: new Text("Help & FAQ"),
                   trailing: new Icon(Icons.arrow_forward_ios),
                 ),
+                Divider(),
                 ListTile(
                   onTap: () {
                     Navigator.of(context).pop();
@@ -230,6 +314,7 @@ class _MapState extends State<Map> {
                   title: new Text("Contact us"),
                   trailing: new Icon(Icons.arrow_forward_ios),
                 ),
+                Divider(),
                 ListTile(
                   onTap: () {
                     Navigator.of(context).pop();
@@ -245,13 +330,18 @@ class _MapState extends State<Map> {
         body: Stack(
           children: <Widget>[
             GoogleMap(
-              markers: _markers,
+              markers: Set<Marker>.of(markers.values),
               mapType: _defaultMapType,
               myLocationEnabled: true,
-              myLocationButtonEnabled: true,
+              myLocationButtonEnabled: false,
               onMapCreated: _onMapCreated,
-              initialCameraPosition: _initialPosition,
+              initialCameraPosition: CameraPosition(
+                  target: LatLng(position.latitude, position.longitude),
+                  zoom: 20),
             ),
+
+
+
             Container(
               margin: EdgeInsets.only(top: 80, right: 10),
               alignment: Alignment.topRight,
@@ -272,277 +362,259 @@ class _MapState extends State<Map> {
         ),
         bottomSheet: _showBottomSheet1
             ? BottomSheet(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(9.0),
+                      topRight: Radius.circular(9.0)),
+                ),
                 elevation: 10,
-                backgroundColor: Colors.white,
+                backgroundColor: Colors.grey,
                 onClosing: () {
-                  // Do something
+// Do something
                 },
                 builder: (BuildContext ctx) => DraggableScrollableSheet(
                     expand: false,
-                    maxChildSize: 0.9,
                     builder: (BuildContext context,
                         ScrollController scrollController) {
-                      return Container(
-                        color: Colors.grey[200],
-                        child: Column(children: <Widget>[
-                          SizedBox(
-                            height: 10,
-                          ),
-                          _showservice
-                              ? Padding(
-                                  padding: const EdgeInsets.only(right: 58.0),
-                                  child: Text(
-                                      "Hello {Username} what are you looking for?"),
-                                )
-                              : InkWell(
-                                  onTap: () {
-                                    setState(() {
-                                      _showservice = true;
-                                    });
-                                  },
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.arrow_back_ios),
-                                      Text(
-                                          "Here are the {plumbs} in your area"),
-                                    ],
-                                  )),
-                          SizedBox(
-                            height: 10,
-                          ),
-                          _showservice
-                              ?Padding(
-                              padding: EdgeInsets.all(8),
-                              child: Row(children: <Widget>[
-                                Expanded(
-                                    child: Container(
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    border: Border.all(
-                                      color: Colors.white,
-                                      width: 1,
-                                    ),
-                                  ),
-                                  height: 60,
-                                  child: Center(
-                                    child: SizedBox(
-                                      height: 30,
-                                      width: 450,
-                                      child: TextField(
-                                          controller: textController,
-                                          decoration: InputDecoration(
-                                            hintText: "search a service .....",
-                                            contentPadding: EdgeInsets.all(4),
-                                            border: new OutlineInputBorder(
-                                              borderRadius:
-                                                  new BorderRadius.circular(
-                                                      25.0),
-                                              borderSide: new BorderSide(),
-                                            ),
-                                            prefixIcon: Icon(
-                                              Icons.search,
-                                              color: Colors.black87,
-                                            ),
-                                          ),
-                                          onChanged: (value) {
-                                            //4
-                                            setState(() {
-                                              _templistOfservices =
-                                                  _buildSearchList(value);
-                                            });
-                                          }),
-                                    ),
-                                  ),
-                                ))
-                              ]
-                              ))
-                          :Padding(
-                              padding: EdgeInsets.all(8),
-                              child: Row(children: <Widget>[
-                                Expanded(
-                                    child: Container(
-                                      decoration: BoxDecoration(
+                      return Column(children: <Widget>[
+                        SizedBox(
+                          height: 10,
+                        ),
+                        _showservice
+                            ? Padding(
+                                padding: const EdgeInsets.only(right: 58.0),
+                                child: Text(
+                                    "Hello ${userModel.FirstName} what are you looking for?"),
+                              )
+                            : InkWell(
+                                onTap: () {
+                                  setState(() {
+                                    _showservice = true;
+                                  });
+                                },
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.arrow_back_ios),
+                                    Text(
+                                        "Here are the Autorepairers in your area"),
+                                  ],
+                                )),
+                        _showservice
+                            ? Padding(
+                                padding: EdgeInsets.all(8),
+                                child: Row(children: <Widget>[
+                                  Expanded(
+                                      child: Container(
+                                    decoration: BoxDecoration(
+                                      border: Border.all(
                                         color: Colors.white,
-                                        border: Border.all(
-                                          color: Colors.white,
-                                          width: 1,
-                                        ),
+                                        width: 1,
                                       ),
-                                      height: 60,
-                                      child: Center(
-                                        child: SizedBox(
-                                          height: 30,
-                                          width: 450,
-                                          child: TextField(
-                                              controller: textController,
-                                              decoration: InputDecoration(
-                                                hintText: "search  service providers .....",
-                                                contentPadding: EdgeInsets.all(4),
-                                                border: new OutlineInputBorder(
-                                                  borderRadius:
-                                                  new BorderRadius.circular(
-                                                      25.0),
-                                                  borderSide: new BorderSide(),
-                                                ),
-                                                prefixIcon: Icon(
-                                                  Icons.search,
-                                                  color: Colors.black87,
-                                                ),
+                                    ),
+                                    height: 60,
+                                    width: double.infinity,
+                                    child: Center(
+                                      child: SizedBox(
+                                        height: 30,
+                                        width: 500,
+                                        child: TextField(
+                                            controller: textController,
+                                            decoration: InputDecoration(
+                                              hintText:
+                                                  "search a service .....",
+                                              contentPadding: EdgeInsets.all(4),
+                                              border: new OutlineInputBorder(
+                                                borderRadius:
+                                                    new BorderRadius.circular(
+                                                        25.0),
+                                                borderSide: new BorderSide(),
                                               ),
-                                              onChanged: (value) {
-                                                //4
-                                                setState(() {
-                                                  _templistOfservices =
-                                                      _buildSearchList(value);
-                                                });
-                                              }),
-                                        ),
-                                      ),
-                                    ))
-                              ]
-                              )),
-                          // IconButton(
-                          //     icon: Icon(Icons.close),
-                          //     color: Colors.black87,
-                          //     onPressed: () {
-                          //       setState(() {
-                          //         textController.clear();
-                          //         _templistOfservices.clear();
-                          //       });
-                          //     }),
-                          _showservice
-                              ? Expanded(
-                                  child: ListView.builder(
-                                      controller: scrollController,
-                                      itemCount: (_templistOfservices != null &&
-                                              _templistOfservices.length > 0)
-                                          ? _templistOfservices.length
-                                          : _listOfservices.length,
-                                      itemBuilder: (context, index) {
-                                        return Card(
-                                          child: Padding(
-                                            padding: EdgeInsets.only(right: 90),
-                                            child: Container(
-                                              color: Colors.white,
-                                              child: ListTile(
-                                                  leading: Container(
-                                                      width: 100,
-                                                      height: 65,
-                                                      decoration: BoxDecoration(
-                                                          color: Colors.black87,
-                                                          borderRadius:
-                                                              new BorderRadius
-                                                                  .only(
-                                                            bottomRight:
-                                                                const Radius
-                                                                        .circular(
-                                                                    50.0),
-                                                            topRight: const Radius
-                                                                .circular(50.0),
-                                                            bottomLeft:
-                                                                const Radius
-                                                                        .circular(
-                                                                    5.0),
-                                                          )),
-                                                      child: FlutterLogo(
-                                                          size: 50.0)),
-                                                  title: (_templistOfservices !=
-                                                              null &&
-                                                          _templistOfservices
-                                                                  .length >
-                                                              0)
-                                                      ? _showBottomSheetWithSearch(
-                                                          index,
-                                                          _templistOfservices)
-                                                      : _showBottomSheetWithSearch(
-                                                          index,
-                                                          _listOfservices),
-                                                  onTap: () {
-                                                    setState(() {
-                                                      _showservice = false;
-                                                    });
-
-                                                    // Navigator.push(context,
-                                                    //     MaterialPageRoute(builder: (context) => ListViewHome()));
-
-                                                    // _scaffoldKey.currentState.showSnackBar(
-                                                    //     SnackBar(
-                                                    //         behavior: SnackBarBehavior.floating,
-                                                    //         content: Text(
-                                                    //             (_templistOfservices != null &&
-                                                    //                     _templistOfservices
-                                                    //                             .length >
-                                                    //                         0)
-                                                    //                 ? _templistOfservices[index]
-                                                    //                 : _listOfservices[index])));
-                                                  }),
+                                              prefixIcon: Icon(
+                                                Icons.search,
+                                                color: Colors.black87,
+                                              ),
                                             ),
+                                            onChanged: (value) {
+//4
+                                              setState(() {
+                                                //  search will be here
+                                              });
+                                            }),
+                                      ),
+                                    ),
+                                  ))
+                                ]))
+                            : Padding(
+                                padding: EdgeInsets.all(8),
+                                child: Row(children: <Widget>[
+                                  Expanded(
+                                      child: Container(
+                                    decoration: BoxDecoration(
+                                      border: Border.all(
+                                        color: Colors.white,
+                                        width: 1,
+                                      ),
+                                    ),
+                                    height: 60,
+                                    child: Center(
+                                      child: SizedBox(
+                                        height: 30,
+                                        width: 450,
+                                        child: TextField(
+                                            controller: textController,
+                                            decoration: InputDecoration(
+                                              hintText:
+                                                  "search  service providers .....",
+                                              contentPadding: EdgeInsets.all(4),
+                                              border: new OutlineInputBorder(
+                                                borderRadius:
+                                                    new BorderRadius.circular(
+                                                        25.0),
+                                                borderSide: new BorderSide(),
+                                              ),
+                                              prefixIcon: Icon(
+                                                Icons.search,
+                                                color: Colors.black87,
+                                              ),
+                                            ),
+                                            onChanged: (value) {
+//4
+                                              setState(() {
+                                                // _templistOfservices =
+                                                //     _buildSearchList(value);
+                                              });
+                                            }),
+                                      ),
+                                    ),
+                                  ))
+                                ])),
+                        _showservice
+                            ? Expanded(
+                                child: StreamBuilder<QuerySnapshot>(
+                                    stream: FirebaseFirestore.instance
+                                        .collection('services')
+                                        .snapshots(),
+                                    builder: (
+                                      context,
+                                      snapshot,
+                                    ) {
+                                      if (snapshot.connectionState ==
+                                          ConnectionState.waiting)
+                                        return Center(
+                                          child: CircularProgressIndicator(
+                                            backgroundColor: Colors.black,
+                                            valueColor:
+                                                new AlwaysStoppedAnimation<
+                                                    Color>(Colors.teal),
                                           ),
                                         );
-                                      }),
-                                )
-                              : Expanded(
-                                  child: ListView.separated(
-                                      controller: scrollController,
-                                      itemCount: (_templistOfwatu != null &&
-                                              _templistOfwatu.length > 0)
-                                          ? _templistOfwatu.length
-                                          : _listOfwatu.length,
-                                      separatorBuilder: (context, int) {
-                                        return Divider(
-                                          height: 1,
-                                        );
-                                      },
-                                      itemBuilder: (context, index) {
-                                        return Container(
-                                          color: Colors.white,
-                                          child: ListTile(
-                                              leading: CircleAvatar(
-                                                backgroundColor: Colors.blue,
-                                                child:
-                                                    Text(_listOfwatu[index][0]),
-                                              ),
-                                              title: Row(children: <Widget>[
-                                                (_templistOfwatu != null &&
-                                                        _templistOfwatu.length >
-                                                            0)
-                                                    ? _showBottomSheetWithSearch(
-                                                        index, _templistOfwatu)
-                                                    : _showBottomSheetWithSearch(
-                                                        index, _listOfwatu),
-                                                SizedBox(
-                                                  width: 100,
+                                      else
+                                        return ListView.separated(
+                                            controller: scrollController,
+                                            itemCount: snapshot.data.docs.length,
+                                            separatorBuilder: (context, int) {
+                                              return Divider(
+                                                height: 1,
+                                              );
+                                            },
+                                            itemBuilder: (context, index) {
+                                              return Card(
+                                                elevation: 10,
+                                                margin: EdgeInsets.zero,
+                                                child: Container(
+                                                  padding: EdgeInsets.symmetric(horizontal: 10),
+                                                  color: Colors.white,
+                                                  child: ListTile(
+                                                      contentPadding: EdgeInsets.all(0),
+                                                      title: new Text(
+                                                        snapshot
+                                                            .data.docs[index]
+                                                            .data()["name"],
+                                                      ),
+                                                      onTap: () {
+                                                        setState(() {
+                                                          _showservice = false;
+                                                          serviceid =
+                                                              snapshot.data
+                                                                  .docs[index].id;
+                                                          print(serviceid);
+                                                          print(snapshot
+                                                              .data.docs[index]
+                                                              .toString());
+                                                        });
+                                                      }),
                                                 ),
-                                                Expanded(
-                                                    child: Container(
-                                                        child:
-                                                            Text("0.3 miles"))),
-                                              ]),
-                                              trailing: Icon(Icons
-                                                  .arrow_forward_ios_rounded),
-                                              onTap: () {
-                                                Navigator.push(
-                                                    context,
-                                                    MaterialPageRoute(
-                                                        builder: (context) =>
-                                                            Profile()));
-
-                                                // _scaffoldKey.currentState.showSnackBar(
-                                                //     SnackBar(
-                                                //         behavior: SnackBarBehavior.floating,
-                                                //         content: Text(
-                                                //             (_templistOfservices != null &&
-                                                //                     _templistOfservices
-                                                //                             .length >
-                                                //                         0)
-                                                //                 ? _templistOfservices[index]
-                                                //                 : _listOfservices[index])));
-                                              }),
+                                              );
+                                            });
+                                    }),
+                              )
+                            : Expanded(
+                                child: StreamBuilder(
+                                    stream: FirebaseFirestore.instance
+                                        .collection('service_providers')
+                                    .where("services", arrayContainsAny: [serviceid])
+                                        .snapshots(),
+                                    builder: (
+                                      context,
+                                      snapshot,
+                                    ) {
+                                      if (snapshot.connectionState ==
+                                          ConnectionState.waiting)
+                                        return Center(
+                                          child: CircularProgressIndicator(
+                                            backgroundColor: Colors.black,
+                                            valueColor:
+                                                new AlwaysStoppedAnimation<
+                                                    Color>(Colors.teal),
+                                          ),
                                         );
-                                      }),
-                                )
-                        ]),
-                      );
+                                      else
+                                        return ListView.separated(
+                                            controller: scrollController,
+                                            itemCount: snapshot.data.docs.length,
+                                            separatorBuilder: (context, int) {
+                                              return Divider(
+                                                height: 1,
+                                              );
+                                            },
+                                            itemBuilder: (context, index) {
+                                              return Container(
+                                                color: Colors.white,
+                                                child: ListTile(
+                                                    title: Row(
+                                                      children: [
+                                                        new Text(
+                                                          snapshot.data.docs[index]['name'],
+                                                        ),
+                                                        SizedBox(width: 150,),
+                                                        new Text(
+                                                          snapshot.data.docs[index]['description'],
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    // leading: new Text(
+                                                    //   providersIndex[
+                                                    //   'providers']
+                                                    //   [index]['icon'],
+                                                    // ),
+                                                    // trailing:new Text(
+                                                    //   providersIndex[
+                                                    //   'providers']
+                                                    //   [index]['image'],
+                                                    // ),
+                                                    onTap: () {
+                                                      Navigator.push(
+                                                          context,
+                                                          MaterialPageRoute(
+                                                              builder:
+                                                                  (context) =>
+                                                                      Profile()));
+                                                    }),
+                                              );
+                                            });
+                                    }),
+                              )
+                      ]);
                     }))
             : null);
   }
@@ -553,28 +625,6 @@ class _MapState extends State<Map> {
       style: TextStyle(
           color: Colors.black, fontSize: 15, fontWeight: FontWeight.bold),
     );
-  }
-
-  List<String> _buildSearchList(String userSearchTerm) {
-    List<String> _searchList = [];
-
-    for (int i = 0; i < _listOfservices.length; i++) {
-
-      String name = _listOfservices[i];
-      if (name.toLowerCase().contains(userSearchTerm.toLowerCase())) {
-        _searchList.add(_listOfservices[i]);
-        return _searchList;
-      }
-      else {
-
-          List<String> _searchList1= ['No  service'];
-          return _searchList1;
-
-
-      }
-    }
-
-
   }
 
   Widget drawer() {
@@ -646,8 +696,4 @@ class _MapState extends State<Map> {
       ),
     );
   }
-
-  void _onCameraClick() {}
-
-
 }

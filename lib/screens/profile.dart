@@ -131,10 +131,7 @@ class _ProfileState extends State<Profile> {
             bottom: 20,
             child: InkWell(
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => chat()),
-                );
+
               },
               child: Container(
                 height: 40,

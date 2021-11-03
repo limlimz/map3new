@@ -29,18 +29,23 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.0
   firebase_core:
-  firebase_auth: ^0.20.0+1
+  firebase_auth: ^1.1.0
   google_maps_flutter: ^0.5.5
   location: ^2.2.0
   image_picker:
   cached_network_image:
   splashscreen:
-  intl_phone_field:
   cloud_firestore:
   getwidget:
   geolocator:
-  international_phone_input: ^1.0.4
-
+  flutter_chat_ui:
+    git:
+      url: https://github.com/freddysundowner/flutter_chat_ui
+  intl:
+  mime:
+  open_file:
+  uuid:
+  file_picker:
 dev_dependencies:
   flutter_test:
     sdk: flutter

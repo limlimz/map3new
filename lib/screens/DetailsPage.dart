@@ -10,7 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:phone_verification/screens/map.dart';
 import 'package:phone_verification/screens/profile.dart';
 
-File _image;
+
 
 class Detail extends StatefulWidget {
   @override
@@ -224,10 +224,12 @@ class _SignUpState extends State<Detail> {
       await User();
       Navigator.push(
           context, MaterialPageRoute(builder: (context) => Mapservice()));
-    } else {
+    }
+    else {
       setState(() {
         _validate = AutovalidateMode.onUserInteraction;
-      });
+      }
+      );
     }
   }
 
@@ -240,34 +242,12 @@ class _SignUpState extends State<Detail> {
     });
   }
 
-  // Database().createuserInfo(_name.text, _namelast.text,_emailAddress.text,).then((value){
-  //
-  // print("value value"+value.toString());
-  //
-  // //we have a reponse from registraion funtion, so we need to set the loading to false and refresh the page by useing set state
-  // loading = false;
-  //
-  // //we check if the respose is true, meaning the registration is successful
-  // if(value == true){
-  // Navigator.push(context,
-  // MaterialPageRoute(builder: (context) => Home()));
-  // }else{
-  // //if the registraion is not successful, then we give user a message that registration has faile;
-  // _message = "user registration failed";
-  //
-  // }
-  //
-  // setState(() {
-  //
-  // });
-  // }
 
 
 
   @override
   void dispose() {
     _passwordController.dispose();
-    _image = null;
     super.dispose();
 
   }
@@ -295,8 +275,7 @@ class _SignUpState extends State<Detail> {
   }
 
   String validateEmail(String value) {
-    String pattern =
-        r'^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$';
+    String pattern = r'^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$';
     RegExp regex = new RegExp(pattern);
     if (!regex.hasMatch(value ?? ''))
       return 'Enter Valid Email';

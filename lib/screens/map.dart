@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:phone_verification/model/user.dart';
+import 'package:phone_verification/screens/chats.dart';
 import 'package:phone_verification/screens/profile.dart';
 import 'package:phone_verification/service/service.dart';
 import 'login_screen.dart';
@@ -31,7 +32,6 @@ class _MapserviceState extends State<Mapservice> {
 
   Map<MarkerId, Marker> markers = <MarkerId, Marker>{};
 
-
   getuserdata() async {
     userModel = await Database().getuserprofile();
     setState(() {});
@@ -43,10 +43,6 @@ class _MapserviceState extends State<Mapservice> {
       position = res;
     });
   }
-
-
-
-
 
   Future getpost() async {
     var firestore = FirebaseFirestore.instance;
@@ -63,43 +59,29 @@ class _MapserviceState extends State<Mapservice> {
     return qn.docs;
   }
 
-
-
-
   void updatePosition() async {
 //get user current location
-    Position position = await Geolocator().getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+    Position position = await Geolocator()
+        .getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
     if (position == null) {
       return;
-    } else{
-      FirebaseFirestore.instance.collection("location").doc(FirebaseAuth.instance.currentUser.uid).set({
-        'location':GeoPoint(
-
-          position.latitude,position.longitude
-        )
-
-
-      });
-
     }
+
+    // else {
+    //   FirebaseFirestore.instance
+    //       .collection("location")
+    //       .doc(FirebaseAuth.instance.currentUser.uid)
+    //       .set({'location': GeoPoint(position.latitude, position.longitude)});
+    // }
 //write place to initialise marker list as we have at least one marker now but  more markers will be needed in services app
     this.markerList = Set<Marker>();
 //finally update state
     setState(() {
-      this.position = position;this.markerList.add(Marker(position: LatLng(position.latitude, position.longitude), markerId: MarkerId("1")));
+      this.position = position;
+      this.markerList.add(Marker(
+          position: LatLng(position.latitude, position.longitude),
+          markerId: MarkerId("1")));
     });
-  }
-
-  Widget getgeo(){
-    return StreamBuilder(
-      stream:FirebaseFirestore.instance.collection("location").snapshots() ,
-        builder: (context, snapshot){
-        if (!snapshot.hasData) return Text(" markers loading");
-        for (int i = 0; i < snapshot.data.length; ++i) {
-
-        }
-        }
-    );
   }
 
 
@@ -120,8 +102,7 @@ class _MapserviceState extends State<Mapservice> {
   var serviceid;
 
   MapType _defaultMapType = MapType.normal;
-
-  BitmapDescriptor pinLocationIcon;
+  Completer<GoogleMapController> controller = Completer();
 
   initMarker(request, requestId) {
     var p = request['location'];
@@ -135,24 +116,25 @@ class _MapserviceState extends State<Mapservice> {
         ));
     setState(() {
       markers[markerId] = marker;
-
     });
   }
 
-  Future populateClients() async{
-   return FirebaseFirestore.instance.collection("location").get().then((docs) {
-      if (docs.docs.isNotEmpty) {
+  Future populateClients() async {
+    print("populateClients");
+    return await FirebaseFirestore.instance
+        .collection("service_providers")
+        .snapshots()
+        .map((docs) {
+          print( "  here is data ${docs.docs.length}");
+      if (docs.docs.length > 0) {
         for (int i = 0; i < docs.docs.length; ++i) {
           initMarker(docs.docs[i].data(), docs.docs[i].id);
-
         }
       }
-      return docs;
-    });
+    }).toList();
   }
 
-
-  // Set<Marker> _markers = {};
+  Set<Marker> _markers= {};
 
   void _onMapCreated(GoogleMapController controller) {
     setState(() {
@@ -204,7 +186,7 @@ class _MapserviceState extends State<Mapservice> {
                 },
                 child: Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                   decoration: BoxDecoration(
                     boxShadow: [
                       BoxShadow(
@@ -246,13 +228,13 @@ class _MapserviceState extends State<Mapservice> {
                               height: 170,
                               child: _image == null
                                   ? Image.asset(
-                                      'assets/placeholder.jpg',
-                                      fit: BoxFit.cover,
-                                    )
+                                'assets/placeholder.jpg',
+                                fit: BoxFit.cover,
+                              )
                                   : Image.file(
-                                      _image,
-                                      fit: BoxFit.cover,
-                                    ),
+                                _image,
+                                fit: BoxFit.cover,
+                              ),
                             ),
                           ),
                         ),
@@ -272,12 +254,15 @@ class _MapserviceState extends State<Mapservice> {
                 ),
                 ListTile(
                   title:
-                      Center(child: new Text("Hello ${userModel.FirstName}")),
+                  Center(child: new Text("Hello ${userModel.FirstName}")),
                 ),
                 Divider(),
                 ListTile(
                   onTap: () {
-                    Navigator.of(context).pop();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => ChatPage()),
+                    );
                   },
                   title: new Text("Conversations"),
                   trailing: new Icon(Icons.arrow_forward_ios),
@@ -339,9 +324,6 @@ class _MapserviceState extends State<Mapservice> {
                   target: LatLng(position.latitude, position.longitude),
                   zoom: 20),
             ),
-
-
-
             Container(
               margin: EdgeInsets.only(top: 80, right: 10),
               alignment: Alignment.topRight,
@@ -362,260 +344,272 @@ class _MapserviceState extends State<Mapservice> {
         ),
         bottomSheet: _showBottomSheet1
             ? BottomSheet(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(9.0),
-                      topRight: Radius.circular(9.0)),
-                ),
-                elevation: 10,
-                backgroundColor: Colors.grey,
-                onClosing: () {
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(9.0),
+                  topRight: Radius.circular(9.0)),
+            ),
+            elevation: 10,
+            backgroundColor: Colors.grey,
+            onClosing: () {
 // Do something
-                },
-                builder: (BuildContext ctx) => DraggableScrollableSheet(
-                    expand: false,
-                    builder: (BuildContext context,
-                        ScrollController scrollController) {
-                      return Column(children: <Widget>[
-                        SizedBox(
-                          height: 10,
-                        ),
-                        _showservice
-                            ? Padding(
-                                padding: const EdgeInsets.only(right: 58.0),
-                                child: Text(
-                                    "Hello ${userModel.FirstName} what are you looking for?"),
-                              )
-                            : InkWell(
-                                onTap: () {
-                                  setState(() {
-                                    _showservice = true;
+            },
+            builder: (BuildContext ctx) => DraggableScrollableSheet(
+                expand: false,
+                builder: (BuildContext context,
+                    ScrollController scrollController) {
+                  return Column(children: <Widget>[
+                    SizedBox(
+                      height: 10,
+                    ),
+                    _showservice
+                        ? Padding(
+                      padding: const EdgeInsets.only(right: 58.0),
+                      child: Text(
+                          "Hello ${userModel.FirstName} what are you looking for?"),
+                    )
+                        : InkWell(
+                        onTap: () {
+                          setState(() {
+                            _showservice = true;
+                          });
+                        },
+                        child: Row(
+                          children: [
+                            Icon(Icons.arrow_back_ios),
+                            Text(
+                                "Here are the Autorepairers in your area"),
+                          ],
+                        )),
+                    _showservice
+                        ? Padding(
+                        padding: EdgeInsets.all(8),
+                        child: Row(children: <Widget>[
+                          Expanded(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: Colors.white,
+                                    width: 1,
+                                  ),
+                                ),
+                                height: 60,
+                                width: double.infinity,
+                                child: Center(
+                                  child: SizedBox(
+                                    height: 30,
+                                    width: 500,
+                                    child: TextField(
+                                        controller: textController,
+                                        decoration: InputDecoration(
+                                          hintText:
+                                          "search a service .....",
+                                          contentPadding: EdgeInsets.all(4),
+                                          border: new OutlineInputBorder(
+                                            borderRadius:
+                                            new BorderRadius.circular(
+                                                25.0),
+                                            borderSide: new BorderSide(),
+                                          ),
+                                          prefixIcon: Icon(
+                                            Icons.search,
+                                            color: Colors.black87,
+                                          ),
+                                        ),
+                                        onChanged: (value) {
+//4
+                                          setState(() {
+                                            //  search will be here
+                                          });
+                                        }),
+                                  ),
+                                ),
+                              ))
+                        ]))
+                        : Padding(
+                        padding: EdgeInsets.all(8),
+                        child: Row(children: <Widget>[
+                          Expanded(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: Colors.white,
+                                    width: 1,
+                                  ),
+                                ),
+                                height: 60,
+                                child: Center(
+                                  child: SizedBox(
+                                    height: 30,
+                                    width: 450,
+                                    child: TextField(
+                                        controller: textController,
+                                        decoration: InputDecoration(
+                                          hintText:
+                                          "search  service providers .....",
+                                          contentPadding: EdgeInsets.all(4),
+                                          border: new OutlineInputBorder(
+                                            borderRadius:
+                                            new BorderRadius.circular(
+                                                25.0),
+                                            borderSide: new BorderSide(),
+                                          ),
+                                          prefixIcon: Icon(
+                                            Icons.search,
+                                            color: Colors.black87,
+                                          ),
+                                        ),
+                                        onChanged: (value) {
+//4
+                                          setState(() {
+                                            // _templistOfservices =
+                                            //     _buildSearchList(value);
+                                          });
+                                        }),
+                                  ),
+                                ),
+                              ))
+                        ])),
+                    _showservice
+                        ? Expanded(
+                      child: StreamBuilder<QuerySnapshot>(
+                          stream: FirebaseFirestore.instance
+                              .collection('services')
+                              .snapshots(),
+                          builder: (
+                              context,
+                              snapshot,
+                              ) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting)
+                              return Center(
+                                child: CircularProgressIndicator(
+                                  backgroundColor: Colors.black,
+                                  valueColor:
+                                  new AlwaysStoppedAnimation<
+                                      Color>(Colors.teal),
+                                ),
+                              );
+                            else
+                              return ListView.separated(
+                                  controller: scrollController,
+                                  itemCount:
+                                  snapshot.data.docs.length,
+                                  separatorBuilder: (context, int) {
+                                    return Divider(
+                                      height: 1,
+                                    );
+                                  },
+                                  itemBuilder: (context, index) {
+                                    return Card(
+                                      elevation: 10,
+                                      margin: EdgeInsets.zero,
+                                      child: Container(
+                                        padding: EdgeInsets.symmetric(
+                                            horizontal: 10),
+                                        color: Colors.white,
+                                        child: ListTile(
+                                            contentPadding:
+                                            EdgeInsets.all(0),
+                                            title: new Text(
+                                              snapshot
+                                                  .data.docs[index]
+                                                  ["name"],
+                                            ),
+                                            onTap: () {
+                                              setState(() {
+                                                _showservice = false;
+                                                serviceid = snapshot
+                                                    .data
+                                                    .docs[index]
+                                                    .id;
+                                                print(serviceid);
+                                                print(snapshot
+                                                    .data.docs[index]
+                                                    .toString());
+                                              });
+                                            }),
+                                      ),
+                                    );
                                   });
-                                },
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.arrow_back_ios),
-                                    Text(
-                                        "Here are the Autorepairers in your area"),
-                                  ],
-                                )),
-                        _showservice
-                            ? Padding(
-                                padding: EdgeInsets.all(8),
-                                child: Row(children: <Widget>[
-                                  Expanded(
-                                      child: Container(
-                                    decoration: BoxDecoration(
-                                      border: Border.all(
-                                        color: Colors.white,
-                                        width: 1,
-                                      ),
-                                    ),
-                                    height: 60,
-                                    width: double.infinity,
-                                    child: Center(
-                                      child: SizedBox(
-                                        height: 30,
-                                        width: 500,
-                                        child: TextField(
-                                            controller: textController,
-                                            decoration: InputDecoration(
-                                              hintText:
-                                                  "search a service .....",
-                                              contentPadding: EdgeInsets.all(4),
-                                              border: new OutlineInputBorder(
-                                                borderRadius:
-                                                    new BorderRadius.circular(
-                                                        25.0),
-                                                borderSide: new BorderSide(),
+                          }),
+                    )
+                        : Expanded(
+                      child: StreamBuilder(
+                          stream: FirebaseFirestore.instance
+                              .collection('service_providers')
+                              .where("services", arrayContainsAny: [
+                            serviceid
+                          ]).snapshots(),
+                          builder: (
+                              context,
+                              snapshot,
+                              ) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting)
+                              return Center(
+                                child: CircularProgressIndicator(
+                                  backgroundColor: Colors.black,
+                                  valueColor:
+                                  new AlwaysStoppedAnimation<
+                                      Color>(Colors.teal),
+                                ),
+                              );
+                            else
+                              return ListView.separated(
+                                  controller: scrollController,
+                                  itemCount:
+                                  snapshot.data.docs.length,
+                                  separatorBuilder: (context, int) {
+                                    return Divider(
+                                      height: 1,
+                                    );
+                                  },
+                                  itemBuilder: (context, index) {
+                                    return Container(
+                                      color: Colors.white,
+                                      child: ListTile(
+                                          title: Row(
+                                            children: [
+                                              new Text(
+                                                snapshot.data
+                                                    .docs[index]
+                                                ['name'],
                                               ),
-                                              prefixIcon: Icon(
-                                                Icons.search,
-                                                color: Colors.black87,
+                                              SizedBox(
+                                                width: 150,
                                               ),
-                                            ),
-                                            onChanged: (value) {
-//4
-                                              setState(() {
-                                                //  search will be here
-                                              });
-                                            }),
-                                      ),
-                                    ),
-                                  ))
-                                ]))
-                            : Padding(
-                                padding: EdgeInsets.all(8),
-                                child: Row(children: <Widget>[
-                                  Expanded(
-                                      child: Container(
-                                    decoration: BoxDecoration(
-                                      border: Border.all(
-                                        color: Colors.white,
-                                        width: 1,
-                                      ),
-                                    ),
-                                    height: 60,
-                                    child: Center(
-                                      child: SizedBox(
-                                        height: 30,
-                                        width: 450,
-                                        child: TextField(
-                                            controller: textController,
-                                            decoration: InputDecoration(
-                                              hintText:
-                                                  "search  service providers .....",
-                                              contentPadding: EdgeInsets.all(4),
-                                              border: new OutlineInputBorder(
-                                                borderRadius:
-                                                    new BorderRadius.circular(
-                                                        25.0),
-                                                borderSide: new BorderSide(),
+                                              new Text(
+                                                snapshot.data
+                                                    .docs[index]
+                                                ['description'],
                                               ),
-                                              prefixIcon: Icon(
-                                                Icons.search,
-                                                color: Colors.black87,
-                                              ),
-                                            ),
-                                            onChanged: (value) {
-//4
-                                              setState(() {
-                                                // _templistOfservices =
-                                                //     _buildSearchList(value);
-                                              });
-                                            }),
-                                      ),
-                                    ),
-                                  ))
-                                ])),
-                        _showservice
-                            ? Expanded(
-                                child: StreamBuilder<QuerySnapshot>(
-                                    stream: FirebaseFirestore.instance
-                                        .collection('services')
-                                        .snapshots(),
-                                    builder: (
-                                      context,
-                                      snapshot,
-                                    ) {
-                                      if (snapshot.connectionState ==
-                                          ConnectionState.waiting)
-                                        return Center(
-                                          child: CircularProgressIndicator(
-                                            backgroundColor: Colors.black,
-                                            valueColor:
-                                                new AlwaysStoppedAnimation<
-                                                    Color>(Colors.teal),
+                                            ],
                                           ),
-                                        );
-                                      else
-                                        return ListView.separated(
-                                            controller: scrollController,
-                                            itemCount: snapshot.data.docs.length,
-                                            separatorBuilder: (context, int) {
-                                              return Divider(
-                                                height: 1,
-                                              );
-                                            },
-                                            itemBuilder: (context, index) {
-                                              return Card(
-                                                elevation: 10,
-                                                margin: EdgeInsets.zero,
-                                                child: Container(
-                                                  padding: EdgeInsets.symmetric(horizontal: 10),
-                                                  color: Colors.white,
-                                                  child: ListTile(
-                                                      contentPadding: EdgeInsets.all(0),
-                                                      title: new Text(
-                                                        snapshot
-                                                            .data.docs[index]
-                                                            .data()["name"],
-                                                      ),
-                                                      onTap: () {
-                                                        setState(() {
-                                                          _showservice = false;
-                                                          serviceid =
-                                                              snapshot.data
-                                                                  .docs[index].id;
-                                                          print(serviceid);
-                                                          print(snapshot
-                                                              .data.docs[index]
-                                                              .toString());
-                                                        });
-                                                      }),
-                                                ),
-                                              );
-                                            });
-                                    }),
-                              )
-                            : Expanded(
-                                child: StreamBuilder(
-                                    stream: FirebaseFirestore.instance
-                                        .collection('service_providers')
-                                    .where("services", arrayContainsAny: [serviceid])
-                                        .snapshots(),
-                                    builder: (
-                                      context,
-                                      snapshot,
-                                    ) {
-                                      if (snapshot.connectionState ==
-                                          ConnectionState.waiting)
-                                        return Center(
-                                          child: CircularProgressIndicator(
-                                            backgroundColor: Colors.black,
-                                            valueColor:
-                                                new AlwaysStoppedAnimation<
-                                                    Color>(Colors.teal),
-                                          ),
-                                        );
-                                      else
-                                        return ListView.separated(
-                                            controller: scrollController,
-                                            itemCount: snapshot.data.docs.length,
-                                            separatorBuilder: (context, int) {
-                                              return Divider(
-                                                height: 1,
-                                              );
-                                            },
-                                            itemBuilder: (context, index) {
-                                              return Container(
-                                                color: Colors.white,
-                                                child: ListTile(
-                                                    title: Row(
-                                                      children: [
-                                                        new Text(
-                                                          snapshot.data.docs[index]['name'],
-                                                        ),
-                                                        SizedBox(width: 150,),
-                                                        new Text(
-                                                          snapshot.data.docs[index]['description'],
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    // leading: new Text(
-                                                    //   providersIndex[
-                                                    //   'providers']
-                                                    //   [index]['icon'],
-                                                    // ),
-                                                    // trailing:new Text(
-                                                    //   providersIndex[
-                                                    //   'providers']
-                                                    //   [index]['image'],
-                                                    // ),
-                                                    onTap: () {
-                                                      Navigator.push(
-                                                          context,
-                                                          MaterialPageRoute(
-                                                              builder:
-                                                                  (context) =>
-                                                                      Profile()));
-                                                    }),
-                                              );
-                                            });
-                                    }),
-                              )
-                      ]);
-                    }))
+                                          // leading: new Text(
+                                          //   providersIndex[
+                                          //   'providers']
+                                          //   [index]['icon'],
+                                          // ),
+                                          // trailing:new Text(
+                                          //   providersIndex[
+                                          //   'providers']
+                                          //   [index]['image'],
+                                          // ),
+                                          onTap: () {
+                                            Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                    builder:
+                                                        (context) =>
+                                                        Profile()));
+                                          }),
+                                    );
+                                  });
+                          }),
+                    )
+                  ]);
+                }))
             : null);
   }
 
@@ -627,73 +621,5 @@ class _MapserviceState extends State<Mapservice> {
     );
   }
 
-  Widget drawer() {
-    return Drawer(
-      elevation: 16.0,
-      child: SizedBox(
-        height: 120.0,
-        child: Column(
-          children: <Widget>[
-            UserAccountsDrawerHeader(
-              decoration: BoxDecoration(color: Colors.black87),
-              accountName: Text("Limo"),
-              accountEmail: Text("limopato254@gmail.com"),
-              currentAccountPicture: CircleAvatar(
-                backgroundColor: Colors.white,
-                child: Text("image"),
-              ),
-              margin: EdgeInsets.zero,
-            ),
-            ListTile(
-              title: new Text("Hello user"),
-              leading: new Icon(Icons.person),
-            ),
-            Divider(),
-            ListTile(
-              onTap: () {
-                Navigator.of(context).pop();
-              },
-              title: new Text("Conversations"),
-              trailing: new Icon(Icons.arrow_forward_ios),
-            ),
-            ListTile(
-              onTap: () {
-                Navigator.of(context).pop();
-              },
-              title: new Text("Receipts"),
-              trailing: new Icon(Icons.arrow_forward_ios),
-            ),
-            ListTile(
-              onTap: () {
-                Navigator.of(context).pop();
-              },
-              title: new Text("Request Board"),
-              trailing: new Icon(Icons.arrow_forward_ios),
-            ),
-            ListTile(
-              onTap: () {
-                Navigator.of(context).pop();
-              },
-              title: new Text("Help & FAQ"),
-              trailing: new Icon(Icons.arrow_forward_ios),
-            ),
-            ListTile(
-              onTap: () {
-                Navigator.of(context).pop();
-              },
-              title: new Text("Contact us"),
-              trailing: new Icon(Icons.arrow_forward_ios),
-            ),
-            ListTile(
-              onTap: () {
-                Navigator.of(context).pop();
-              },
-              title: new Text("settings"),
-              trailing: new Icon(Icons.arrow_forward_ios),
-            )
-          ],
-        ),
-      ),
-    );
-  }
+
 }
